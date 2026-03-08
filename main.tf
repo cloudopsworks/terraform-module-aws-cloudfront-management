@@ -29,8 +29,8 @@ resource "aws_cloudfront_distribution" "this" {
   viewer_certificate {
     cloudfront_default_certificate = try(var.settings.cert.cloudfront_default_certificate, true)
     acm_certificate_arn            = try(var.acm_certificate_arn, null)
-    minimum_protocol_version       = try(var.settings.cert.minimum_protocol_version, null)
-    ssl_support_method             = try(var.settings.cert.ssl_support_method, null)
+    minimum_protocol_version       = try(var.settings.cert.minimum_protocol_version, "TLSv1.2_2025")
+    ssl_support_method             = try(var.settings.cert.ssl_support_method, "sni-only")
   }
   default_cache_behavior {
     allowed_methods        = try(var.settings.default_cache_behavior.allowed_methods, ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"])
