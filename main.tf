@@ -20,10 +20,18 @@ data "aws_s3_bucket" "s3_origin" {
   bucket = each.value.name
 }
 
+resource "aws_cloudfront_origin_access_control" "this" {
+  for_each                          = try(var.settings.origins, {})
+  name                              = format("%s-%s-oac", each.key, local.cloudfront_name_short)
+  origin_access_control_origin_type = each.value.type == "s3" ? "s3" : "custom"
+  signing_behavior                  = try(each.value.signing_behavior, "always")
+  signing_protocol                  = try(each.value.signing_protocol, "sigv4")
+}
+
 resource "aws_cloudfront_distribution" "this" {
   enabled             = try(var.settings.enabled, true)
   is_ipv6_enabled     = try(var.settings.ipv6_enabled, false)
-  comment             = try(var.settings.comment, local.cloudfront_name)
+  comment             = try(var.settings.comment, format("CloudFront distribution for %s", local.cloudfront_name))
   default_root_object = try(var.settings.default_root_object, "index.html")
   aliases             = try(var.settings.aliases, [])
   viewer_certificate {
@@ -35,7 +43,7 @@ resource "aws_cloudfront_distribution" "this" {
   default_cache_behavior {
     allowed_methods        = try(var.settings.default_cache_behavior.allowed_methods, ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"])
     cached_methods         = try(var.settings.default_cache_behavior.cached_methods, ["GET", "HEAD"])
-    target_origin_id       = try(var.settings.default_cache_behavior.target_origin_id, format("%s-%s", var.settings.default_origin , local.cloudfront_name_short))
+    target_origin_id       = try(var.settings.default_cache_behavior.target_origin_id, format("%s-%s", var.settings.default_origin, local.cloudfront_name_short))
     viewer_protocol_policy = try(var.settings.default_cache_behavior.viewer_protocol_policy, "redirect-to-https")
     min_ttl                = try(var.settings.default_cache_behavior.min_ttl, 0)
     default_ttl            = try(var.settings.default_cache_behavior.default_ttl, 3600)
@@ -53,9 +61,10 @@ resource "aws_cloudfront_distribution" "this" {
   dynamic "origin" {
     for_each = try(var.settings.origins, {})
     content {
-      domain_name = origin.value.type == "s3" ? data.aws_s3_bucket.s3_origin[origin.key].bucket_regional_domain_name : origin.value.domain_name
-      origin_id   = format("%s-%s", origin.key, local.cloudfront_name_short)
-      origin_path = try(origin.value.origin_path, null)
+      domain_name              = origin.value.type == "s3" ? data.aws_s3_bucket.s3_origin[origin.key].bucket_regional_domain_name : origin.value.domain_name
+      origin_id                = format("%s-%s", origin.key, local.cloudfront_name_short)
+      origin_path              = try(origin.value.origin_path, null)
+      origin_access_control_id = aws_cloudfront_origin_access_control.this[origin.key].id
     }
   }
   restrictions {
