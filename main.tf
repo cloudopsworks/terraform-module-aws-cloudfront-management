@@ -11,6 +11,15 @@ locals {
   cloudfront_name       = var.name != "" ? var.name : format("%s-%s", var.name_prefix, local.system_name)
   cloudfront_name_short = var.name != "" ? var.name : format("%s-%s", var.name_prefix, local.system_name_short)
 }
+
+data "aws_s3_bucket" "s3_origin" {
+  for_each = {
+    for key, origin in try(var.settings.origins, {}) : key => origin
+    if origin.type == "s3"
+  }
+  bucket = each.value.name
+}
+
 resource "aws_cloudfront_distribution" "this" {
   enabled             = try(var.settings.enabled, true)
   is_ipv6_enabled     = try(var.settings.ipv6_enabled, false)
@@ -44,10 +53,10 @@ resource "aws_cloudfront_distribution" "this" {
   dynamic "origin" {
     for_each = try(var.settings.origins, {})
     content {
-      domain_name = origin.value.domain_name
+      domain_name = origin.value.type == "s3" ? data.aws_s3_bucket.s3_origin[origin.key].bucket_regional_domain_name : origin.value.domain_name
       origin_id   = format("%s-%s", origin.key, local.cloudfront_name_short)
       origin_path = try(origin.value.origin_path, null)
-     }
+    }
   }
   restrictions {
     geo_restriction {
