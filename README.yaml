@@ -1,4 +1,4 @@
-name: Terraform Transit Gateway Module
+name: CloudFront Management Terraform Module
 #logo: logo/logo.jpg
 
 license: "APACHE2"
@@ -6,25 +6,189 @@ license: "APACHE2"
 copyrights:
   - name: "Cloud Ops Works LLC"
     url: "https://cloudops.works"
-    year: "2024"
+    year: "2025"
 
-github_repo: cloudopsworks/terraform-module-aws-vpc-setup
+github_repo: cloudopsworks/terraform-module-aws-cloudfront-management
 
 description: |-
-  VPC Module for setting up transit gateway with ResourceAccessMananger support.
+  This module manages AWS CloudFront distributions, including origins, behaviors, functions, and staging configurations.
 
 # Introduction to the project
-#introduction: |-
-#  This is an introduction.
+introduction: |-
+  A comprehensive module to manage AWS CloudFront distributions with support for multiple origins (S3 and custom), cache behaviors, CloudFront functions, and continuous deployment through staging distributions. It simplifies the setup of complex CloudFront configurations by providing a structured way to define settings and functions.
 
 # How to use this project
-#usage: |-
+usage: |-
+  ### Terragrunt Configuration
+
+  To use this module with Terragrunt, create a `terragrunt.hcl` file with the following structure:
+
+  ```hcl
+  include "root" {
+    path = find_in_parent_folders()
+  }
+
+  terraform {
+    source = "github.com/cloudopsworks/terraform-module-aws-cloudfront-management?ref=v1.0.0"
+  }
+
+  inputs = {
+    # (Optional) The name of the CloudFront distribution.
+    name = "my-cdn"
+
+    # (Optional) Prefix for the distribution name.
+    name_prefix = "cdn"
+
+    # (Required) Organization details for tagging and naming.
+    org = {
+      organization_name = "my-org"
+      organization_unit = "my-unit"
+      environment_type  = "production"
+      environment_name  = "prod"
+    }
+
+    # (Optional) Is this a hub or spoke configuration? Default: false
+    is_hub = false
+
+    # (Optional) Spoke ID Number. Default: "001"
+    spoke_def = "001"
+
+    # (Optional) Extra tags to add to the resources. Default: {}
+    extra_tags = {
+      Project = "Phoenix"
+    }
+
+    # (Optional) ACM certificate ARN for the distribution.
+    acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/..."
+
+    # (Required) CloudFront distribution settings.
+    settings = {
+      default_origin = "main-origin"
+      origins = {
+        main-origin = {
+          type = "s3"
+          name = "my-web-content-bucket"
+        }
+      }
+      default_cache_behavior = {
+        managed_cache = "Managed-CachingOptimized"
+      }
+    }
+  }
+  ```
+
+  ### Variables Structure Documentation (YAML)
+
+  ```yaml
+  # Full configuration structure for 'settings' variable
+  settings:
+    enabled: true             # (Optional) Enable/disable distribution. Default: true
+    ipv6_enabled: false       # (Optional) Enable/disable IPv6. Default: false
+    comment: "My CDN"         # (Optional) Description of the distribution.
+    default_root_object: "index.html" # (Optional) Default root object. Default: "index.html"
+    aliases: ["cdn.example.com"] # (Optional) CNAME aliases. Default: []
+    default_origin: "origin1" # (Required) ID of the default origin.
+    origins:                  # (Required) Map of origins.
+      origin1:
+        type: "s3"            # (Required) s3 or custom.
+        name: "my-bucket"     # (Required if type is s3) S3 bucket name.
+        domain_name: "example.com" # (Required if type is custom) Domain name.
+        origin_path: "/web"   # (Optional) Path in the origin.
+        origin_staging_path: "/stg" # (Optional) Path for staging origin.
+        signing_behavior: "always" # (Optional) always, never, no-override.
+        signing_protocol: "sigv4"  # (Optional) sigv4.
+    cert:                     # (Optional) Certificate settings.
+      cloudfront_default_certificate: true
+      minimum_protocol_version: "TLSv1.2_2025"
+      ssl_support_method: "sni-only"
+    default_cache_behavior:   # (Required) Default cache behavior.
+      managed_cache: "Managed-CachingOptimized"
+      viewer_protocol_policy: "redirect-to-https"
+      allowed_methods: ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods: ["GET", "HEAD"]
+      compress: true
+      functions:              # (Optional) Function associations.
+        - ref: "my-function"  # Reference to a function in 'functions' variable
+          event_type: "viewer-request"
+    staging:                  # (Optional) Staging distribution settings.
+      create: false
+      enabled: true
+      header:
+        name: "X-Staging"
+        value: "true"
+
+  # Full configuration structure for 'functions' variable
+  functions:
+    my-function:
+      comment: "My JS Function"
+      runtime: "cloudfront-js-2.0"
+      publish: true
+      code: |
+        function handler(event) {
+          var request = event.request;
+          return request;
+        }
+  ```
 
 # Example usage
-#examples: |-
+examples: |-
+  ### Complete Terragrunt Example with Custom Origin and Functions
+
+  ```hcl
+  terraform {
+    source = "github.com/cloudopsworks/terraform-module-aws-cloudfront-management?ref=v1.0.0"
+  }
+
+  inputs = {
+    name_prefix = "myapp"
+    org = {
+      organization_name = "acme"
+      organization_unit = "platform"
+      environment_type  = "prod"
+      environment_name  = "global"
+    }
+    settings = {
+      default_origin = "app-api"
+      origins = {
+        app-api = {
+          type = "custom"
+          domain_name = "api.acme.com"
+        }
+      }
+      default_cache_behavior = {
+        managed_cache   = "Managed-CachingOptimized"
+        allowed_methods = ["GET", "HEAD", "OPTIONS"]
+        viewer_protocol_policy = "redirect-to-https"
+        functions = [
+          {
+            ref = "security-headers"
+            event_type = "viewer-response"
+          }
+        ]
+      }
+    }
+    functions = {
+      security-headers = {
+        code = <<EOF
+  function handler(event) {
+      var response = event.response;
+      var headers = response.headers;
+      headers['x-frame-options'] = { value: 'DENY' };
+      headers['x-content-type-options'] = { value: 'nosniff' };
+      return response;
+  }
+  EOF
+      }
+    }
+  }
+  ```
 
 # How to get started quickly
-#quickstart: |-
+quickstart: |-
+  1. Define your S3 bucket or custom origin.
+  2. Configure your Terragrunt inputs focusing on `org` and `settings`.
+  3. Ensure `default_origin` matches a key in the `origins` map.
+  4. Run `terragrunt plan` and then `terragrunt apply`.
 
 include:
   - "docs/targets.md"

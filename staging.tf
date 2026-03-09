@@ -31,7 +31,7 @@ resource "aws_cloudfront_distribution" "staging" {
   comment             = try(var.settings.comment, format("Staging CloudFront distribution for %s", local.cloudfront_name))
   default_root_object = try(var.settings.default_root_object, "index.html")
   viewer_certificate {
-    cloudfront_default_certificate = try(var.settings.cert.cloudfront_default_certificate, true)
+    cloudfront_default_certificate = try(var.acm_certificate_arn, "") == "" ? try(var.settings.cert.cloudfront_default_certificate, true) : false
     acm_certificate_arn            = try(var.acm_certificate_arn, null)
     minimum_protocol_version       = try(var.settings.cert.minimum_protocol_version, "TLSv1.2_2025")
     ssl_support_method             = try(var.settings.cert.ssl_support_method, "sni-only")
