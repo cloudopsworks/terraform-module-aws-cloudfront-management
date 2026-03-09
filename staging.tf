@@ -26,12 +26,11 @@ resource "aws_cloudfront_origin_access_control" "staging" {
 resource "aws_cloudfront_distribution" "staging" {
   depends_on          = [aws_cloudfront_origin_access_control.this]
   count               = try(var.settings.staging.enabled, false) ? 1 : 0
+  staging             = true
   enabled             = try(var.settings.enabled, true)
   is_ipv6_enabled     = try(var.settings.ipv6_enabled, false)
-  staging             = true
   comment             = try(var.settings.comment, format("Staging CloudFront distribution for %s", local.cloudfront_name))
   default_root_object = try(var.settings.default_root_object, "index.html")
-  aliases             = try(var.settings.aliases, [])
   viewer_certificate {
     cloudfront_default_certificate = try(var.settings.cert.cloudfront_default_certificate, true)
     acm_certificate_arn            = try(var.acm_certificate_arn, null)
