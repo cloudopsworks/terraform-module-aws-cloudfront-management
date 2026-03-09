@@ -45,15 +45,7 @@ resource "aws_cloudfront_distribution" "staging" {
     default_ttl            = try(var.settings.default_cache_behavior.default_ttl, 3600)
     max_ttl                = try(var.settings.default_cache_behavior.max_ttl, 86400)
     compress               = try(var.settings.default_cache_behavior.compress, true)
-    forwarded_values {
-      query_string = try(var.settings.default_cache_behavior.forwarded_values.query_string, false)
-      cookies {
-        forward           = try(var.settings.default_cache_behavior.forwarded_values.cookies.forward, "none")
-        whitelisted_names = try(var.settings.default_cache_behavior.forwarded_values.cookies.whitelisted_names, [])
-      }
-      headers                 = try(var.settings.default_cache_behavior.forwarded_values.headers, [])
-      query_string_cache_keys = try(var.settings.default_cache_behavior.forwarded_values.query_string_cache_keys, [])
-    }
+    cache_policy_id        = data.aws_cloudfront_cache_policy.this.id
     dynamic "function_association" {
       for_each = try(var.settings.default_cache_behavior.functions, [])
       content {
