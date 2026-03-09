@@ -8,33 +8,30 @@
 #
 
 locals {
-  cloudfront_name       = var.name != "" ? var.name : format("%s-%s", var.name_prefix, local.system_name)
-  cloudfront_name_short = var.name != "" ? var.name : format("%s-%s", var.name_prefix, local.system_name_short)
+  stg_cloudfront_name       = var.name != "" ? var.name : format("%s-%s-stg", var.name_prefix, local.system_name)
+  stg_cloudfront_name_short = var.name != "" ? var.name : format("%s-%s-stg", var.name_prefix, local.system_name_short)
 }
 
-data "aws_s3_bucket" "s3_origin" {
+resource "aws_cloudfront_origin_access_control" "staging" {
   for_each = {
     for key, origin in try(var.settings.origins, {}) : key => origin
-    if origin.type == "s3"
+    if try(var.settings.staging.enabled, false)
   }
-  bucket = each.value.name
-}
-
-resource "aws_cloudfront_origin_access_control" "this" {
-  for_each                          = try(var.settings.origins, {})
-  name                              = format("%s-%s-oac", each.key, local.cloudfront_name_short)
+  name                              = format("%s-%s-stg-oac", each.key, local.stg_cloudfront_name_short)
   origin_access_control_origin_type = each.value.type == "s3" ? "s3" : "custom"
   signing_behavior                  = try(each.value.signing_behavior, "always")
   signing_protocol                  = try(each.value.signing_protocol, "sigv4")
 }
 
-resource "aws_cloudfront_distribution" "this" {
-  enabled                         = try(var.settings.enabled, true)
-  is_ipv6_enabled                 = try(var.settings.ipv6_enabled, false)
-  comment                         = try(var.settings.comment, format("CloudFront distribution for %s", local.cloudfront_name))
-  default_root_object             = try(var.settings.default_root_object, "index.html")
-  aliases                         = try(var.settings.aliases, [])
-  continuous_deployment_policy_id = try(var.settings.staging.enabled, false) ? aws_cloudfront_continuous_deployment_policy.staging[0].id : null
+resource "aws_cloudfront_distribution" "staging" {
+  depends_on          = [aws_cloudfront_origin_access_control.this]
+  count               = try(var.settings.staging.enabled, false) ? 1 : 0
+  enabled             = try(var.settings.enabled, true)
+  is_ipv6_enabled     = try(var.settings.ipv6_enabled, false)
+  staging             = true
+  comment             = try(var.settings.comment, format("Staging CloudFront distribution for %s", local.cloudfront_name))
+  default_root_object = try(var.settings.default_root_object, "index.html")
+  aliases             = try(var.settings.aliases, [])
   viewer_certificate {
     cloudfront_default_certificate = try(var.settings.cert.cloudfront_default_certificate, true)
     acm_certificate_arn            = try(var.acm_certificate_arn, null)
@@ -73,7 +70,7 @@ resource "aws_cloudfront_distribution" "this" {
       domain_name              = origin.value.type == "s3" ? data.aws_s3_bucket.s3_origin[origin.key].bucket_regional_domain_name : origin.value.domain_name
       origin_id                = format("%s-%s", origin.key, local.cloudfront_name_short)
       origin_path              = try(origin.value.origin_path, null)
-      origin_access_control_id = aws_cloudfront_origin_access_control.this[origin.key].id
+      origin_access_control_id = aws_cloudfront_origin_access_control.staging[origin.key].id
     }
   }
   restrictions {
@@ -83,6 +80,23 @@ resource "aws_cloudfront_distribution" "this" {
     }
   }
   tags = merge(local.all_tags, {
-    "Name" = local.cloudfront_name
+    "Name" = local.stg_cloudfront_name
   })
+}
+
+resource "aws_cloudfront_continuous_deployment_policy" "staging" {
+  count   = try(var.settings.staging.enabled, false) ? 1 : 0
+  name    = format("%s-%s-stg-cdp", var.name != "" ? var.name : var.name_prefix, local.system_name_short)
+  enabled = true
+  staging_distribution_dns_names {
+    items    = [aws_cloudfront_distribution.staging[0].domain_name]
+    quantity = 1
+  }
+  traffic_config {
+    type = "SingleHeader"
+    single_header_config {
+      header = var.settings.staging.header.name
+      value  = var.settings.staging.header.value
+    }
+  }
 }
