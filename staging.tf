@@ -24,7 +24,6 @@ resource "aws_cloudfront_origin_access_control" "staging" {
 }
 
 resource "aws_cloudfront_distribution" "staging" {
-  depends_on          = [aws_cloudfront_distribution.this]
   count               = try(var.settings.staging.create, false) ? 1 : 0
   staging             = true
   enabled             = try(var.settings.staging.enabled, true)
