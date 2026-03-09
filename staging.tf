@@ -69,7 +69,7 @@ resource "aws_cloudfront_distribution" "staging" {
     content {
       domain_name              = origin.value.type == "s3" ? data.aws_s3_bucket.s3_origin[origin.key].bucket_regional_domain_name : origin.value.domain_name
       origin_id                = format("%s-%s", origin.key, local.cloudfront_name_short)
-      origin_path              = try(origin.value.origin_path, null)
+      origin_path              = try(origin.value.origin_staging_path, origin.value.origin_path, null)
       origin_access_control_id = aws_cloudfront_origin_access_control.staging[origin.key].id
     }
   }
