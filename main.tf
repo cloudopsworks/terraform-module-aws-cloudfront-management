@@ -47,17 +47,20 @@ resource "aws_cloudfront_distribution" "this" {
     target_origin_id       = try(var.settings.default_cache_behavior.target_origin_id, format("%s-%s", var.settings.default_origin, local.cloudfront_name_short))
     viewer_protocol_policy = try(var.settings.default_cache_behavior.viewer_protocol_policy, "redirect-to-https")
     min_ttl                = try(var.settings.default_cache_behavior.min_ttl, 0)
-    default_ttl            = try(var.settings.default_cache_behavior.default_ttl, 3600)
-    max_ttl                = try(var.settings.default_cache_behavior.max_ttl, 86400)
+    default_ttl            = try(var.settings.default_cache_behavior.default_ttl, 0)
+    max_ttl                = try(var.settings.default_cache_behavior.max_ttl, 0)
     compress               = try(var.settings.default_cache_behavior.compress, true)
-    forwarded_values {
-      query_string = try(var.settings.default_cache_behavior.forwarded_values.query_string, false)
-      cookies {
-        forward           = try(var.settings.default_cache_behavior.forwarded_values.cookies.forward, "none")
-        whitelisted_names = try(var.settings.default_cache_behavior.forwarded_values.cookies.whitelisted_names, [])
+    dynamic "forwarded_values" {
+      for_each = length(try(var.settings.default_cache_behavior.forwarded_values, {})) > 0 ? [1] : []
+      content {
+        query_string = try(var.settings.default_cache_behavior.forwarded_values.query_string, false)
+        cookies {
+          forward           = try(var.settings.default_cache_behavior.forwarded_values.cookies.forward, "none")
+          whitelisted_names = try(var.settings.default_cache_behavior.forwarded_values.cookies.whitelisted_names, [])
+        }
+        headers                 = try(var.settings.default_cache_behavior.forwarded_values.headers, [])
+        query_string_cache_keys = try(var.settings.default_cache_behavior.forwarded_values.query_string_cache_keys, [])
       }
-      headers                 = try(var.settings.default_cache_behavior.forwarded_values.headers, [])
-      query_string_cache_keys = try(var.settings.default_cache_behavior.forwarded_values.query_string_cache_keys, [])
     }
     dynamic "function_association" {
       for_each = try(var.settings.default_cache_behavior.functions, [])
