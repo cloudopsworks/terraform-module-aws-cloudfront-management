@@ -48,6 +48,7 @@ resource "aws_cloudfront_distribution" "this" {
     min_ttl                = try(var.settings.default_cache_behavior.min_ttl, 0)
     default_ttl            = try(var.settings.default_cache_behavior.default_ttl, 3600)
     max_ttl                = try(var.settings.default_cache_behavior.max_ttl, 86400)
+    compress               = try(var.settings.default_cache_behavior.compress, true)
     forwarded_values {
       query_string = try(var.settings.default_cache_behavior.forwarded_values.query_string, false)
       cookies {
