@@ -15,7 +15,7 @@ locals {
 resource "aws_cloudfront_origin_access_control" "staging" {
   for_each = {
     for key, origin in try(var.settings.origins, {}) : key => origin
-    if try(var.settings.staging.enabled, false)
+    if try(var.settings.staging.create, false)
   }
   name                              = format("%s-%s-stg-oac", each.key, local.stg_cloudfront_name_short)
   origin_access_control_origin_type = each.value.type == "s3" ? "s3" : "custom"
@@ -24,7 +24,7 @@ resource "aws_cloudfront_origin_access_control" "staging" {
 }
 
 resource "aws_cloudfront_distribution" "staging" {
-  depends_on          = [aws_cloudfront_origin_access_control.this]
+  depends_on          = [aws_cloudfront_distribution.this]
   count               = try(var.settings.staging.create, false) ? 1 : 0
   staging             = true
   enabled             = try(var.settings.staging.enabled, true)
@@ -84,7 +84,7 @@ resource "aws_cloudfront_distribution" "staging" {
 }
 
 resource "aws_cloudfront_continuous_deployment_policy" "staging" {
-  count   = try(var.settings.staging.enabled, false) ? 1 : 0
+  count   = try(var.settings.staging.create, false) ? 1 : 0
   enabled = true
   staging_distribution_dns_names {
     items    = [aws_cloudfront_distribution.staging[0].domain_name]
