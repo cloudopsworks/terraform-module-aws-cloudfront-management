@@ -41,9 +41,9 @@ resource "aws_cloudfront_distribution" "staging" {
     cached_methods         = try(var.settings.default_cache_behavior.cached_methods, ["GET", "HEAD"])
     target_origin_id       = try(var.settings.default_cache_behavior.target_origin_id, format("%s-%s", var.settings.default_origin, local.cloudfront_name_short))
     viewer_protocol_policy = try(var.settings.default_cache_behavior.viewer_protocol_policy, "redirect-to-https")
-    min_ttl                = try(var.settings.default_cache_behavior.min_ttl, 0)
-    default_ttl            = try(var.settings.default_cache_behavior.default_ttl, 3600)
-    max_ttl                = try(var.settings.default_cache_behavior.max_ttl, 86400)
+    min_ttl                = try(var.settings.default_cache_behavior.min_ttl, null)
+    default_ttl            = try(var.settings.default_cache_behavior.default_ttl, null)
+    max_ttl                = try(var.settings.default_cache_behavior.max_ttl, null)
     compress               = try(var.settings.default_cache_behavior.compress, true)
     cache_policy_id        = data.aws_cloudfront_cache_policy.this.id
     dynamic "function_association" {
