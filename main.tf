@@ -61,7 +61,7 @@ resource "aws_cloudfront_distribution" "this" {
     dynamic "function_association" {
       for_each = try(var.settings.default_cache_behavior.functions, [])
       content {
-        function_arn = aws_cloudfront_function.this[function_association.value.ref].arn
+        function_arn = try(function_association.value.ref) != "" ? aws_cloudfront_function.this[function_association.value.ref].arn : function_association.value.function_arn
         event_type   = function_association.value.event_type
       }
     }
