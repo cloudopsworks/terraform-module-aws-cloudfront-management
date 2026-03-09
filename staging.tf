@@ -86,7 +86,6 @@ resource "aws_cloudfront_distribution" "staging" {
 
 resource "aws_cloudfront_continuous_deployment_policy" "staging" {
   count   = try(var.settings.staging.enabled, false) ? 1 : 0
-  name    = format("%s-%s-stg-cdp", var.name != "" ? var.name : var.name_prefix, local.system_name_short)
   enabled = true
   staging_distribution_dns_names {
     items    = [aws_cloudfront_distribution.staging[0].domain_name]
