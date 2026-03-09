@@ -24,3 +24,9 @@ variable "settings" {
   type        = any
   default     = {}
 }
+
+variable "functions" {
+  description = "A map of CloudFront functions to be associated with the distribution. Each key in the map should be a unique identifier for the function, and the value should contain the configuration for that function."
+  type        = any
+  default     = {}
+}

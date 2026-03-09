@@ -58,6 +58,13 @@ resource "aws_cloudfront_distribution" "this" {
       headers                 = try(var.settings.default_cache_behavior.forwarded_values.headers, [])
       query_string_cache_keys = try(var.settings.default_cache_behavior.forwarded_values.query_string_cache_keys, [])
     }
+    dynamic "function_association" {
+      for_each = try(var.settings.default_cache_behavior.functions, [])
+      content {
+        function_arn = aws_cloudfront_function.this[function_association.value.ref].arn
+        event_type   = function_association.value.event_type
+      }
+    }
   }
   dynamic "origin" {
     for_each = try(var.settings.origins, {})
