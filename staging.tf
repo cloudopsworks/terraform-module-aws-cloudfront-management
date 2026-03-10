@@ -105,19 +105,3 @@ resource "aws_cloudfront_continuous_deployment_policy" "staging" {
     }
   }
 }
-
-resource "aws_cloudfront_continuous_deployment_policy" "weight" {
-  count   = try(var.settings.staging.create, false) && length(try(var.settings.staging.weight, {})) > 0 ? 1 : 0
-  enabled = true
-  staging_distribution_dns_names {
-    items    = [aws_cloudfront_distribution.staging[0].domain_name]
-    quantity = 1
-  }
-  traffic_config {
-    type = "SingleWeight"
-    single_header_config {
-      header = var.settings.staging.header.name
-      value  = var.settings.staging.header.value
-    }
-  }
-}
