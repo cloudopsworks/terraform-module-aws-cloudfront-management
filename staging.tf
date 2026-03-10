@@ -93,12 +93,12 @@ resource "aws_cloudfront_continuous_deployment_policy" "staging" {
     dynamic "single_weight_config" {
       for_each = length(try(var.settings.staging.header, {})) > 0 ? [] : [1]
       content {
-        weight = (var.settings.weighted.traffic_percent / 100)
+        weight = (var.settings.weight.traffic_percent / 100)
         dynamic "session_stickiness_config" {
-          for_each = try(var.settings.weighted.session_stickiness.enabled, false) ? [1] : []
+          for_each = try(var.settings.weight.session_stickiness.enabled, false) ? [1] : []
           content {
-            idle_ttl    = try(var.settings.weighted.session_stickiness.idle_ttl, 300)
-            maximum_ttl = try(var.settings.weighted.session_stickiness.maximum_ttl, 300)
+            idle_ttl    = try(var.settings.weight.session_stickiness.idle_ttl, 300)
+            maximum_ttl = try(var.settings.weight.session_stickiness.maximum_ttl, 300)
           }
         }
       }
@@ -107,7 +107,7 @@ resource "aws_cloudfront_continuous_deployment_policy" "staging" {
 }
 
 resource "aws_cloudfront_continuous_deployment_policy" "weight" {
-  count   = try(var.settings.staging.create, false) && length(try(var.settings.staging.weighted, {})) > 0 ? 1 : 0
+  count   = try(var.settings.staging.create, false) && length(try(var.settings.staging.weight, {})) > 0 ? 1 : 0
   enabled = true
   staging_distribution_dns_names {
     items    = [aws_cloudfront_distribution.staging[0].domain_name]
