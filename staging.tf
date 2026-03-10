@@ -93,7 +93,7 @@ resource "aws_cloudfront_continuous_deployment_policy" "staging" {
     dynamic "single_weight_config" {
       for_each = length(try(var.settings.staging.header, {})) > 0 ? [] : [1]
       content {
-        weight = (var.settings.weight.traffic_percent / 100)
+        weight = var.settings.weight.traffic_percent > 1.0 ? (var.settings.weight.traffic_percent / 100) : var.settings.weight.traffic_percent
         dynamic "session_stickiness_config" {
           for_each = try(var.settings.weight.session_stickiness.enabled, false) ? [1] : []
           content {
