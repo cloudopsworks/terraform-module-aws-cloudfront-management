@@ -76,7 +76,7 @@ resource "aws_cloudfront_distribution" "staging" {
 
 resource "aws_cloudfront_continuous_deployment_policy" "staging" {
   count   = try(var.settings.staging.create, false) ? 1 : 0
-  enabled = true
+  enabled = try(var.settings.staging.header.enabled, var.settings.staging.weight.enabled, true)
   staging_distribution_dns_names {
     items    = [aws_cloudfront_distribution.staging[0].domain_name]
     quantity = 1
