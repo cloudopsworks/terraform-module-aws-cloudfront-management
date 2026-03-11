@@ -26,6 +26,9 @@ resource "aws_cloudfront_origin_access_control" "this" {
   origin_access_control_origin_type = each.value.type == "s3" ? "s3" : "custom"
   signing_behavior                  = try(each.value.signing_behavior, "always")
   signing_protocol                  = try(each.value.signing_protocol, "sigv4")
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_cloudfront_cache_policy" "this" {
