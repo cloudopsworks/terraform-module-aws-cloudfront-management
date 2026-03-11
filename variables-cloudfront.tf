@@ -61,9 +61,17 @@ variable "name_prefix" {
 #   staging: # (Optional) Staging distribution settings.
 #     create: false # (Optional) Whether to create a staging distribution. Default: false
 #     enabled: true # (Optional) Whether the staging distribution is enabled. Default: true
-#     header: # (Required if staging.create is true) Header configuration for traffic routing.
-#       name: "X-Staging" # (Required if staging.create is true) The name of the header for traffic routing to staging.
-#       value: "true" # (Required if staging.create is true) The value of the header for traffic routing to staging.
+#     header: # (Optional) Header configuration for traffic routing.
+#       name: "X-Staging" # (Required if header routing is used) The name of the header for traffic routing to staging.
+#       value: "true" # (Required if header routing is used) The value of the header for traffic routing to staging.
+#     weighted: # (Optional) Weighted traffic routing settings.
+#       traffic_percent: 10 # (Required if weighted routing is used) The percentage of traffic to route to the staging distribution. Default: 0
+#   weighted: # (Optional) Weighted traffic routing settings (legacy/alternative location).
+#     traffic_percent: 10 # (Required if using weighted routing) The percentage of traffic to route to the staging distribution. Default: 0
+#     session_stickiness: # (Optional) Session stickiness settings for weighted routing.
+#       enabled: false # (Optional) Whether session stickiness is enabled. Default: false
+#       idle_ttl: 300 # (Optional) The idle TTL for session stickiness in seconds. Default: 300
+#       maximum_ttl: 300 # (Optional) The maximum TTL for session stickiness in seconds. Default: 300
 variable "settings" {
   description = "CloudFront distribution settings for the project. This variable should contain all the necessary configuration for the CloudFront distribution, such as origins, behaviors, and other settings."
   type        = any
@@ -73,7 +81,7 @@ variable "settings" {
 # functions: # (Optional) A map of CloudFront functions to be associated with the distribution.
 #   my-func: # (Required) Unique identifier for the function.
 #     comment: "My function" # (Optional) A comment for the function.
-#     runtime: "cloudfront-js-2.0" # (Optional) The runtime for the function. Default: "cloudfront-js-2.0"
+#     runtime: "cloudfront-js-2.0" # (Optional) The runtime for the function. Possible values: cloudfront-js-1.0, cloudfront-js-2.0. Default: "cloudfront-js-2.0"
 #     publish: true # (Optional) Whether to publish the function. Default: true
 #     code: "function handler(event) { ... }" # (Required) The source code of the function.
 variable "functions" {

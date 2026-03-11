@@ -21,6 +21,9 @@ resource "aws_cloudfront_origin_access_control" "staging" {
   origin_access_control_origin_type = each.value.type == "s3" ? "s3" : "custom"
   signing_behavior                  = try(each.value.signing_behavior, "always")
   signing_protocol                  = try(each.value.signing_protocol, "sigv4")
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_cloudfront_distribution" "staging" {
@@ -76,16 +79,32 @@ resource "aws_cloudfront_distribution" "staging" {
 
 resource "aws_cloudfront_continuous_deployment_policy" "staging" {
   count   = try(var.settings.staging.create, false) ? 1 : 0
-  enabled = true
+  enabled = try(var.settings.staging.header.enabled, var.settings.staging.weight.enabled, true)
   staging_distribution_dns_names {
     items    = [aws_cloudfront_distribution.staging[0].domain_name]
     quantity = 1
   }
   traffic_config {
-    type = "SingleHeader"
-    single_header_config {
-      header = var.settings.staging.header.name
-      value  = var.settings.staging.header.value
+    type = length(try(var.settings.staging.header, {})) > 0 ? "SingleHeader" : "SingleWeight"
+    dynamic "single_header_config" {
+      for_each = length(try(var.settings.staging.header, {})) > 0 ? [1] : []
+      content {
+        header = var.settings.staging.header.name
+        value  = var.settings.staging.header.value
+      }
+    }
+    dynamic "single_weight_config" {
+      for_each = length(try(var.settings.staging.header, {})) > 0 ? [] : [1]
+      content {
+        weight = var.settings.staging.weight.traffic_percent > 1.0 ? (var.settings.staging.weight.traffic_percent / 100) : var.settings.staging.weight.traffic_percent
+        dynamic "session_stickiness_config" {
+          for_each = try(var.settings.staging.weight.session_stickiness.enabled, false) ? [1] : []
+          content {
+            idle_ttl    = try(var.settings.staging.weight.session_stickiness.idle_ttl, 300)
+            maximum_ttl = try(var.settings.staging.weight.session_stickiness.maximum_ttl, 300)
+          }
+        }
+      }
     }
   }
 }
