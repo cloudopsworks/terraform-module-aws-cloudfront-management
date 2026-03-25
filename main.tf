@@ -41,6 +41,8 @@ resource "aws_cloudfront_distribution" "this" {
   comment                         = try(var.settings.comment, format("CloudFront distribution for %s", local.cloudfront_name))
   default_root_object             = try(var.settings.default_root_object, "index.html")
   aliases                         = try(var.settings.aliases, [])
+  wait_for_deployment             = try(var.settings.wait_for_deployment, null)
+  web_acl_id                      = try(var.settings.web_acl_id, null)
   continuous_deployment_policy_id = try(var.settings.staging.create, false) ? aws_cloudfront_continuous_deployment_policy.staging[0].id : null
   viewer_certificate {
     cloudfront_default_certificate = try(var.acm_certificate_arn, "") == "" ? try(var.settings.cert.cloudfront_default_certificate, true) : false
