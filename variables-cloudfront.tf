@@ -27,6 +27,8 @@ variable "name_prefix" {
 #   comment: "CloudFront distribution" # (Optional) Any comments you want to include about the distribution. Default: "CloudFront distribution for <name>"
 #   default_root_object: "index.html" # (Optional) The object that you want CloudFront to return when an end user requests the root URL. Default: "index.html"
 #   aliases: ["example.com"] # (Optional) Extra CNAMEs (alternate domain names), if any, for this distribution. Default: []
+#   wait_for_deployment: true # (Optional) If enabled, the resource will wait for the distribution status to change from `InProgress` to `Deployed`. Default: null (uses provider default)
+#   web_acl_id: "arn:aws:wafv2:us-east-1:..." # (Optional) The ARN of the WAF Web ACL to associate with the distribution. For WAFv2, use the ARN of the web ACL. Default: null
 #   default_origin: "my-origin" # (Required) The ID of the default origin for the distribution.
 #   origins: # (Required) Map of origins for the distribution.
 #     my-origin: # (Required) Unique identifier for the origin.
